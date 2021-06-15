@@ -95,9 +95,9 @@ class myDataset(Dataset):
       print(f'{mode}_data 有{self.data.shape[0]}筆資料，每筆 dim={self.data.shape[1]}')
     self.dim = data.shape[1]
     #Normorlization
-    # self.data[:, :] = \
-    #         (self.data[:, :] - self.data[:, :].mean(dim=0, keepdim=True)) \
-    #         / self.data[:, :].std(dim=0, keepdim=True)
+    self.data[:, :] = \
+            (self.data[:, :] - self.data[:, :].mean(dim=0, keepdim=True)) \
+            / self.data[:, :].std(dim=0, keepdim=True)
 
   def __getitem__(self, idx):
     if self.mode in ['train','val'] :
@@ -305,7 +305,7 @@ class NN(nn.Module):
 
 model=NN(train_set.dataset.dim).to(device)
 
-num_epochs = 40
+num_epochs = 20
 learning_rate = 1e-4
 ##loss1
 # criterion= nn.CrossEntropyLoss()
@@ -339,9 +339,6 @@ for epoch in range(num_epochs):
   num_TP=0
   num_TN=0
   for i , data in enumerate(train_set):
-    TP=torch.tensor([0.], requires_grad=True)  #真實為true且預測為true
-    FP=torch.tensor([0.], requires_grad=True) #真實為false且預測為true
-    FN=torch.tensor([0.], requires_grad=True)  #真實為true且預測為false
     inputs , labels = data
     inputs , labels = inputs.to(device), labels.to(device)
 
@@ -358,27 +355,16 @@ for epoch in range(num_epochs):
     # num_FN += FN.detach().clone()
     # num_TP += TP.detach().clone()
 
-    # TN = (  (prediction==0).int() == (labels==0).int() ).sum().float()
-    # num_TN += TN.detach().clone()
     
     for i in range(len(labels)):
       if prediction[i]==1 and labels[i]==1:
         num_TP+=1
-        TP=TP+1
       elif prediction[i]==1 and labels[i]==0:
         num_FP+=1
-        FP=FP+1
       elif prediction[i]==0 and labels[i]==1:
         num_FN+=1
-        FN=FN+1
       else:
         num_TN+=1
-    
-    
-    ##定義自己的loss，舉例如下 將cost function 中有cost的成上去
-    # FN.requires_grad=True
-    # FP.requires_grad=True
-    # loss = FN * 100 + FP * 1 #loss一定要是純量(一個數字)，不然會出錯
     
 
     # - , predicetion = torch.max( logits , 1)
@@ -393,10 +379,6 @@ for epoch in range(num_epochs):
     train_accs.append(acc)
   print(f'num_TP : {num_TP},num_FP : {num_FP},num_FN : {num_FN},num_TN : {num_TN} ')
   try:
-    # Precision=TP/(TP+FP)
-    # Recall=TP/(TP+FN)
-    # F1_socre=2*(Precision*Recall)/(Precision+Recall)
-
     Precision=num_TP/(num_TP+num_FP)
     Recall=num_TP/(num_TP+num_FN)
     F1_socre=2*(Precision*Recall)/(Precision+Recall)
@@ -410,7 +392,6 @@ for epoch in range(num_epochs):
   train_acc=sum(train_accs)/len(train_accs)#計算平均
 
   train_F1_score.append(F1_socre)#畫圖用
-  # print(type(train_loss) ,type(train_acc), type(F1_socre),type(Precision),type(Recall))
   print(f'[ Train | {epoch + 1:03d}/{num_epochs:03d} ] loss = {train_loss.item():.5f}, acc = {train_acc.item():.5f}, F1_socre = {F1_socre:.5f}, Precision = {Precision:.5f} , Recall = {Recall:.5f}')
 
 
@@ -418,9 +399,9 @@ for epoch in range(num_epochs):
   ######## Validation #########
   valid_loss = []
   valid_accs = []
-  TP=0  #真實為true且預測為true
-  FP=0 #真實為false且預測為true
-  FN=0  #真實為true且預測為false
+  # TP=0  #真實為true且預測為true
+  # FP=0 #真實為false且預測為true
+  # FN=0  #真實為true且預測為false
   num_FP=0
   num_FN=0
   num_TP=0
@@ -437,18 +418,14 @@ for epoch in range(num_epochs):
     for i in range(len(labels)):
       if prediction[i]==1 and labels[i]==1:
         num_TP+=1
-        TP=TP+1
       elif prediction[i]==1 and labels[i]==0:
         num_FP+=1
-        FP=FP+1
       elif prediction[i]==0 and labels[i]==1:
         num_FN+=1
-        FN=FN+1
-
+    
     acc = ( prediction == labels ).float().mean()
     valid_loss.append(loss)
     valid_accs.append(acc)
-  # print(f'num_TP : {num_TP},num_FP : {num_FP},num_FN : {num_FN} ')
   try:
     Precision=num_TP/(num_TP+num_FP)
     Recall=num_TP/(num_TP+num_FN)
